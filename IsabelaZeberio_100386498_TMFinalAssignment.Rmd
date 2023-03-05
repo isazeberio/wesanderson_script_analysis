@@ -1,0 +1,951 @@
+---
+title: "IsabelaZeberio_100386498_TMFinalAssignment"
+author: "Isabela Zeberio"
+date: "2023-03-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(tidytext)
+library(scrapex)
+library(rvest)
+library(httr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(xml2)
+library(sf)
+library(rnaturalearth)
+library(scales)
+library(reshape2)
+library(wordcloud)
+```
+
+## Wes Anderson
+
+Wes Anderson is an American filmmaker known for his distinct visual style, eccentric characters, and idiosyncratic stories. The color palettes of a film can reveal a lot about it. For this project I decided to combine text mining methods and color theory to understand Wes Anderson's storytelling technique. I will analyze the scripts of three of his most popular films to understand Anderson's stories through his use of words and color. The objective of this project is to make sense of Anderson's character development and the core themes of each movie as well as exploring common themes between Rushmore (1998), Fantastic Mr. Fox (2009), and Moonrise Kingdom (2012)
+
+Thanks to `library(wesanderson)` we can access in R to Anderson's bright and colorful world, but does his script follow this style? Are his characters always cheerful and lively? Is the language he uses always positive? Those who have seen his films know that behind this facade there is something else, but what do the words of his scripts tell us by themselves?
+
+Following Karthik's package statement, let's create the most indie final assignment for a course
+
+## Scripts
+
+The first step is to install the `wesanderson` package and save the movie scripts into variables. The [Internet Movie Script Database (IMSDb)](https://imsdb.com/) is a website that offers free scripts for movies, television shows, and other forms of visual media. This database has a collection of scripts for several Wes Anderson films, including "Rushmore", "Fantastic Mr. Fox", and "Moonrise Kingdom".
+
+Installation:
+
+```{r}
+#install.packages("wesanderson")
+#or
+#devtools::install_github("karthik/wesanderson")
+
+library(wesanderson)
+```
+
+All the palettes available:
+
+```{r}
+names(wes_palettes)
+```
+
+In order to convert the scripts into variables we have to read the webpage using `read_html()` and extract the text from. The function `xml_child()` is used to obtain the nodes of the webpage. The instructions are the same for all 3 scripts, it is needed to obtain the character vector with the text of the scripts.
+
+After reading and inspecting [IMSDb](https://imsdb.com/) webpage, I see that the information we want to extract is in the \<td\> tag with the class scrtext.
+
+-   The function `xml_find_all()` allow us to extract the specific nodes containing the screeplay text.
+-   The function `xml_text()` returns a character vector.
+-   The function `str_split()` takes the character vector from the previous step and returns a list split by "\\r\\n" which represent line breaks and indicate us the start of a new line
+
+Character names in a script are frequently written in all capital letters when they are first introduced (e.g., **MAX, CAPTAIN SHARP, LAZY-EYE, FOX**). This is a convention used to help the reader recognize new characters and differentiate them from speech and other components of the script. However, for text analysis, we do not want these names repeating themselves every time a character speaks. Specially since word frequency and the context of words is so important to understand the text. I removed the all capital names with the function `str_replace_all()` to avoid the overrepresentation on the analysis.
+
+The only thing left to do is to remove all the extra space between lines. I used `grepl()` function to search the pattern "\^\$", which represents an empty line or blank space, and keep the lines that do not contain the pattern by placing a ! character before `grepl()`.
+
+### Rushmore Academy
+
+```{r}
+raw <- read_html("https://imsdb.com/scripts/Rushmore.html") %>% xml_child()
+raw
+
+rushmore <- raw %>%
+  xml_find_all("//td[@class='scrtext']") %>% 
+  xml_text() %>% 
+  str_split("\r\n") %>%
+  .[[1]]
+
+rushmore <- rushmore %>%
+  str_replace_all(pattern = "^[A-Z[:space:][:punct:]]+$", replacement = "")
+
+rushmore <- rushmore[!grepl("^$", rushmore)] #remove extra spaces
+
+rushmore <- as.data.frame(rushmore[!grepl("^\\s*$", rushmore)]) #create data frame
+
+colnames(rushmore)[1] <- "text" #change the name of the column to next
+
+rushmore <- rushmore %>% 
+  #include a second column to know from which movie the text comes from
+  mutate(movie="Rushmore") %>% 
+  # Remove the first 3 rows and the last 2 which includes information bout the script but is not text from the script
+   slice(4:(nrow(.) - 2))
+
+tibble(rushmore)
+```
+
+```{r}
+wes_palette("Rushmore")
+```
+
+### Moonrise Kingdom
+
+```{r}
+raw <- read_html("https://imsdb.com/scripts/Moonrise-Kingdom.html") %>% xml_child()
+raw
+
+# Search for all <p> tags with that class in the document
+moonrise <- raw %>%
+  xml_find_all("//td[@class='scrtext']") %>% 
+  xml_text() %>% 
+  str_split("\r\n") %>%
+  .[[1]]
+
+moonrise <- moonrise %>% 
+  str_replace_all(pattern = "^[A-Z[:space:][:punct:]]+$", replacement = "")
+
+moonrise <- moonrise[!grepl("^$", moonrise)] #remove extra spaces
+
+moonrise <- as.data.frame(moonrise[!grepl("^\\s*$", moonrise)])
+
+colnames(moonrise)[1]  <- "text" 
+
+moonrise <- moonrise %>% 
+  mutate(movie="Moonrise Kingdom") %>% 
+  slice(4:(nrow(.) - 2))
+
+tibble(moonrise)
+
+```
+
+```{r}
+wes_palette("Moonrise3")
+```
+
+### Fantastic Mr. Fox
+
+```{r}
+raw <- read_html("https://imsdb.com/scripts/Fantastic-Mr-Fox.html") %>% xml_child()
+raw
+
+# Search for all <p> tags with that class in the document
+fox <- raw %>%
+  xml_find_all("//td[@class='scrtext']") %>% 
+  xml_text() %>% 
+  str_split("\r\n") %>%
+  .[[1]]
+
+fox <- fox %>% 
+  str_replace_all(pattern = "^[A-Z[:space:][:punct:]]+$", replacement = "")
+
+fox <- fox[!grepl("^$", fox)] #remove extra spaces
+
+fox <- as.data.frame(fox[!grepl("^\\s*$", fox)])
+
+colnames(fox)[1]  <- "text" 
+
+fox <- fox %>% 
+  mutate(movie="Fantastic Mr. Fox") %>% 
+  slice(4:(nrow(.) - 2))
+
+tibble(fox)
+
+```
+
+```{r}
+wes_palette("FantasticFox1")
+```
+
+```{r}
+script <- rbind(moonrise,fox,rushmore) #I combine in one variable the thee scripts
+unique(script$movie)
+```
+
+After obtaining the text from each script and taking a first look at the colors of each film, we can finally start with the text analysis.
+
+## Tokenization
+
+As we saw in class, tokenization is the process of breaking down a piece of text into individual units called tokens, which are meaningful units of text
+
+```{r}
+wes_script <- script %>%
+  unnest_tokens(word, text)
+```
+
+Stop words have grammatical meaning but do not add to text mining (e.g.,"the", "or", "a"). Thus the next step is to filter them by using `anti_join()`
+
+```{r}
+wes_script <- wes_script %>% 
+  anti_join(stop_words)
+
+wes_words <- wes_script %>% 
+  count(movie, word, sort = TRUE) 
+wes_words
+```
+
+## Counting word frequencies
+
+We want to know how many times a word is mentioned in Anderson's movies, so we use the function `count()`.
+
+```{r R.options=list(max.print=20)}
+rushmore_words <- wes_script %>% 
+  filter(movie =="Rushmore") %>% 
+  count(movie, word, sort = TRUE) 
+rushmore_words
+```
+
+In Rushmore we see that the two most frequent words are Max and Blume, character names. The next two are a little bit confusing if you have not seen the movies since the other really important character of this movie is Miss Rosemary Cross.
+
+After the names of the characters, the most repeated words that begin to give us some clues about the overall tone of this film are dirk, pause, nods, smiles, silence, hands, starts, eyes, and school. Many of the words we see describe the actions ore movement the actors have to follow. However, we can perceive in this first reading a contemplative, intimate or introspective tone with moments of silence, nods, and eye contact indicating characters are reflecting on their thoughts and feelings. The world school is also a great indicator of where this story takes place.
+
+```{r}
+wes_script %>% 
+  filter(movie =="Rushmore") %>% 
+  count(movie, word, sort = TRUE) %>% 
+  #only words mentioned more than 35 times in the script
+  filter(n >= 40) %>%
+  #we reorder words by number of mentions
+  mutate(word = reorder(word, n)) %>%
+  #we create the plot with the word (x) and the number of mentions (y)
+  ggplot(aes(n, word,  fill = word)) +
+  geom_col() +
+  labs(y = NULL) +
+  scale_fill_manual(values = wes_palette(21, name = "Rushmore", type = "continuous"), name = "") +
+  #reverse the order of the legend 
+  guides(fill = guide_legend(reverse = TRUE))
+
+```
+
+```{r R.options=list(max.print=20)}
+moonrise_words <- wes_script %>% 
+  filter(movie =="Moonrise Kingdom") %>% 
+  count(movie,word, sort = TRUE) 
+moonrise_words
+```
+
+In the case of Moonrise Kingdom, we see that, once again, the two most common words are our main characters' names: Sam and Suzy. However, the third word, scout, is a really good hint about who the main characters are. and as was also the case with Rusmore, we find some words that seem to point to something but are character names: Scout Master Randy Ward, Captain Sharp or Skotak. Nonetheless, the words also show the hierarchical ranking organization like the Scouts normally use. The division of power and the names used by the Scouts comes from the military, thus the use of words like troop, services or commander fits in the scenario where this story takes place.
+
+```{r}
+wes_script %>% 
+  filter(movie =="Moonrise Kingdom") %>% 
+  count(movie, word, sort = TRUE) %>% 
+  filter(n >= 40) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word,  fill = word)) +
+  geom_col() +
+  labs(y = NULL) +
+  scale_fill_manual(values = wes_palette(21, name = "Moonrise3", type = "continuous"), name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+
+```
+
+```{r R.options=list(max.print=20)}
+fox_words <- wes_script %>% 
+  filter(movie =="Fantastic Mr. Fox") %>% 
+  count(movie,word, sort = TRUE) 
+fox_words
+```
+
+In our third script, we also find as the most frequent words charter names but, moreover, the species of the protagonists: the fox. After these words we find more earthy concepts than in the previous scripts: hole, rat, paw, farmers, apple, chicken, air, tree, cider, mountain, and cuss. The protagonist of this movie are animals, not human, and because they are "anthropomorphic animals" we see a mix of human and animal/nature concepts of the script.
+
+But, what does *cuss* means?
+
+```{r}
+fox %>%
+  filter(str_detect(text, "cuss"))
+```
+
+Cuss is a great word to analyze. For non-native English speakers it does not make a lot of sense if we see the word by itself. We need the context of this word to understand what it means. When we read the whole sentence we realize that cuss is used for cursing, it seems like a family-friendly substitute for fuck or shit.
+
+-   Oh cuss. What time is it?
+-   Stinks like cuss
+-   Bull-cuss!
+-   The cuss you are!
+-   Are you cussing with me?
+-   Let's kick some fox cuss!
+
+```{r}
+wes_script %>% 
+  filter(movie =="Fantastic Mr. Fox") %>% 
+  count(movie, word, sort = TRUE) %>% 
+  filter(n >= 40) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word,  fill = word)) +
+  geom_col() +
+  labs(y = NULL) +
+  scale_fill_manual(values = wes_palette(21, name = "FantasticFox1", type = "continuous"), name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+
+```
+
+### Comparing the scripts
+
+Anderson's scripts often feature highly specific and detailed descriptions of settings and characters, which help to create a strong sense of visual style and tone.
+
+```{r}
+frequency <- wes_script %>% 
+  mutate(word = str_extract(word, "[a-z']+")) %>%
+  #we count number of mentions of a word in each movie
+  count(movie, word) %>%
+  #we calculate proportion
+  group_by(movie) %>%
+  mutate(proportion = n / sum(n)) %>% 
+  select(-n) %>% 
+  #we reshape the dataframe
+  #pivot wider means: more columns, less rows
+  pivot_wider(names_from = movie, values_from = proportion) %>%
+  #pivot longer means: more rows, less columns
+  pivot_longer(`Moonrise Kingdom`:`Fantastic Mr. Fox`,
+               names_to = "movie", values_to = "proportion")
+
+frequency
+
+```
+
+There is a column named "Rushmore" with proportion of the movie because it is our reference. We are comparing the words used in Moonrise Kingdom and Fantastic Mr. Fox with the ones used in Rushmore.
+
+```{r message=FALSE}
+
+ggplot(frequency, aes(x = proportion, y = `Rushmore`, 
+                      color = abs(`Rushmore` - proportion))) +
+    geom_abline(color = "gray40", lty = 2) +
+    geom_jitter(alpha = 0.1, size = 0.5, width = 0.3, height = 0.3) +
+    geom_text(aes(label = word), check_overlap = TRUE, vjust = 0.5) +
+    scale_x_log10(labels = percent_format()) +
+    scale_y_log10(labels = percent_format()) +
+    scale_color_gradient(limits = c(0, 0.001), 
+                         low = wes_palette("Rushmore", n = 20, type = "continuous")[1], 
+                         high = wes_palette("Rushmore", n = 20, type = "continuous")[20])  +
+    facet_wrap(~movie, ncol = 2) +
+    theme(legend.position="none") +
+    labs(y = "Rushmore", x = NULL)
+```
+
+The plot helps to understand which words have in common the different scripts. The words that are close to the line, have similart frequencies in both sets of texts. The further they are to the right and to the upper zone of the plot, the more frequent they appear in both scripts. For example, Fantastic Mr. Fox and Rushmore have in the high frequency area words like door, head and black. We can glean a little more information from the comparison with Moonrise Kingdom by finding words like cigarette, bloody, and died, more explicit words. The words that are in the low left part of the plot are in the low frequency area. Lastly, words that are far from the line are words that are found more in one set of texts than another. For instance, it is interesting to observe that the word kid and its plural is used much more in Rushmore than in Moonrise Kingdom since the main characters of the latter are younger than the protagonist of Rushmore. It is noteworthy because Rushmore is a coming of age movie in which Max Fischer, the protagonist is an eccentric 15-year-old who is constantly interacting with older people: he falls in love with a first-grade teacher, Miss Cross, and befriends a wealthy industrialist, Herman Blume.
+
+### Word correlation
+
+The Pearson correlation allow us to quantify how similar and different these sets of word frequencies are. This correlation will return a number between -1 and 1 that measures the strength and direction of the relationship between two variables.
+
+```{r}
+cor.test(data = frequency[frequency$movie == "Fantastic Mr. Fox",],
+         ~ proportion + `Rushmore`)
+```
+
+```{r}
+cor.test(data = frequency[frequency$movie == "Moonrise Kingdom",],
+         ~ proportion + `Rushmore`)
+```
+
+Both Moonrise Kingdom and Fantastic Mr. Fox are weakly correlated to Rushmore, being Fantastic Mr. Fox (0.388) a little more correlated to Rushmore than Moonrise Kingdom (0.339).
+
+## Sentiment analysis
+
+Sentiment analysis is a natural language processing technique to determine the emotional tone of the content. In this case, the goal is to determine whether the scripts are expressing a positive, negative, or neutral sentiment.
+
+Using sentiment analysis on Wes Anderson's scripts could reveal information about the emotional tone of his films. Wes Anderson's films are noted for their quirky and enchanting style, and sentiment analysis could contribute to uncovering the underlying emotional themes that run throughout his films.
+
+### Joy words
+
+Let's find out which are the most common words of joy in Rushmore, Moonrise Kingdom, and in Fantastic Mr. Fox
+
+```{r}
+#we set nrc lexicon to a variable, filtering by joy
+nrc_joy <- get_sentiments("nrc") %>% 
+  filter(sentiment == "joy")
+```
+
+```{r R.options=list(max.print=20)}
+rushmore_joy <- wes_script %>% 
+  filter(movie =="Rushmore") %>% 
+    #we combine both lists, NRC and Rushmore's words
+  inner_join(nrc_joy) %>%
+    #we count the mentions of each word to find the most frequent
+  count(word, sort = TRUE) 
+
+rushmore_joy
+```
+
+```{r}
+rushmore_joy %>%
+  filter(n > 4) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = n, y = word, fill=word)) +
+  geom_col() +
+  labs(y = NULL) +
+  scale_fill_manual(values = wes_palette(12, name = "Rushmore", type = "continuous"), name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+```
+
+```{r R.options=list(max.print=20)}
+moonrise_joy <- wes_script %>% 
+  filter(movie =="Moonrise Kingdom") %>% 
+  inner_join(nrc_joy) %>%
+  count(word, sort = TRUE)
+
+moonrise_joy
+```
+
+```{r}
+moonrise_joy %>%
+  filter(n > 5) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = n, y = word, fill=word)) +
+  geom_col() +
+  labs(y = NULL) +
+  scale_fill_manual(values = wes_palette(10, name = "Moonrise3", type = "continuous"), name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+```
+
+```{r R.options=list(max.print=20)}
+fox_joy <- wes_script %>% 
+  filter(movie =="Fantastic Mr. Fox") %>% 
+  inner_join(nrc_joy) %>%
+  count(word, sort = TRUE)
+
+fox_joy
+```
+
+```{r}
+fox_joy %>%
+  filter(n > 3) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = n, y = word, fill=word)) +
+  geom_col() +
+  labs(y = NULL) +
+  scale_fill_manual(values = wes_palette(12, name = "FantasticFox1", type = "continuous"), name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+```
+
+The plots show us that one of the most frequents and recurrent word of joy is tree. Trees appear frequently in Wes Anderson's movies, serving as a powerful metaphor of nature and growth:
+
+-   Rushmore → Trees are part of the scenery, many sequences in the film show Max and other characters walking through tree-lined walks on the Rushmore Academy campus. Trees tend to be used to represent the passage of time and the growth of the characters.
+-   Moonrise Kingdom → Not only the movie's setting, a fictional island off the coast of New England, is heavily wooded, but also as good scouts, the idea of tree houses appears in the script.
+-   Fantastic Mr. Fox →Trees play a really important part in this film as the family of foxes lives inside one. The trees provide protection for Mr. Fox as he outwits his human rivals and snatches food from their farms throughout the movie.
+
+Other frequent joy words we can observe through these movies are love (recurrent theme in all three movies), dance and jump (actions that we see the characters in these movies frequently doing).
+
+### Comparing the sentiments between films
+
+```{r}
+wes_sentiment <- wes_script %>%
+  #find the sentiment for each word using bing
+  inner_join(get_sentiments("bing")) %>%
+  #divide each movie in chunks of 10 lines
+  #Bing is a multiclass classification approach on just 2 categories: positive and negative.
+  count(movie, index = row_number() %/% 10, sentiment) %>%
+  #we write positive and negative in different columns
+  pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>%
+  #we substract positive minus negative to find a net sentiment
+  mutate(sentiment = positive - negative)
+
+wes_sentiment
+
+```
+
+This information is easier to visualize and understand if we plot it:
+
+```{r}
+#create the plot with x = index (chunks) and y = net sentiment
+ggplot(wes_sentiment, aes(index, sentiment, fill = movie)) +
+  geom_col(show.legend = TRUE) +
+  facet_wrap(~movie, ncol = 2, scales = "free_x") +
+  scale_fill_manual(values = wes_palette(3, name = "Rushmore", type = "continuous"), name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+
+```
+
+This plot is very interesting because despite Anderson's aesthetics, the feelings we see in his films are
+
+predominantly negative (I would rather say nostalgic):
+
+-   Rushmore → Max is a smart but troubled teenager who struggles with his feelings for his teacher and his place in the world. Loss and rejection are key themes in the film.
+
+-   Moonrise Kingdom → Is a nostalgic contemplation of young love and childhood innocence. But, the film also addresses issues of grief and familial dysfunction, particularly in Suzy's troubled relationship with her parents. The general tone of the picture is bittersweet, as it depicts a yearning for the purity and innocence of youth.
+
+-   Fantastic Mr. Fox → The protagonist of this film is aged and regretful wild animal who yearns for the days when he could steal from farmers. Despite being a lighthearted and fun movie, it deals with loss, rebellion, and the weight of the consequences.
+
+### Comparing lexicon in Moonrise Kingdom
+
+Since Moontise Kingdom is the movie in which there is the greatest variation in sentiment, let's compare the lexicons to see the bias of each.
+
+```{r}
+afinn <- wes_script %>% 
+  filter(movie =="Moonrise Kingdom") %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(index = row_number() %/% 10) %>% 
+  summarise(sentiment = sum(value)) %>% 
+  mutate(method = "AFINN")
+
+bing_and_nrc <- bind_rows(
+  #Bing
+ wes_script %>% 
+   filter(movie =="Moonrise Kingdom") %>% 
+    #we get sentiments from bing
+    inner_join(get_sentiments("bing")) %>%
+    #we create the column for bing
+    mutate(method = "Bing et al."),
+  #NRC
+  wes_script %>% 
+    #we get sentiment from nrc 
+    inner_join(get_sentiments("nrc") %>% 
+                 #we filter just sentiment, not emotions
+                 filter(sentiment %in% c("positive", 
+                                         "negative"))
+               ) %>%
+    #we create the column for nrc
+    mutate(method = "NRC")) %>%
+  #we divide in chunks of 10 lines
+  count(method, index = row_number() %/% 10, sentiment) %>%
+  #we write positive and negative in different columns
+  pivot_wider(names_from = sentiment,
+              values_from = n,
+              values_fill = 0) %>% 
+  #we extract net sentiment by substraction
+  mutate(sentiment = positive - negative)
+
+```
+
+```{r}
+#Bind the three of them
+bind_rows(afinn, 
+          bing_and_nrc) %>%
+  #make the plot with x=index (chunks), y=sentiment and fill by lexicon (method)
+  ggplot(aes(index, sentiment, fill = method)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~method, ncol = 1, scales = "free_y")
+```
+
+Now we can observe how different narrative plot can be just depending on the sentiment lexicon we use.
+
+-   AFINN tell us that the script has predominantly negative words, a lot of low values and very few positive values
+-   Bing et al. show more variety and a positive ending after two blocks of negative narrative. It has some of the same negative points as AFINN but interprets much more events as positive.
+-   NRC has the largest blocks. The beginning is the opposite of what the other two sentiment lexicons tell us. The ends of the script matches slightly with Bing et al.
+
+This graph is a great example of why we can't blindly trust lexicons, each one has a particular type of bias. In class we learned that there are three possible biases :
+
+-   The language is biased toward negative emotions (more negative than positive words).
+-   The language is biased toward pleasant emotions (more positive than negative words).
+-   The lexicon is stylistically and contextually distinct from the text under consideration.
+
+### Word cloud
+
+A popular technique for visualizing the most frequently occurring words in a piece of text is wordcloud. It is a quick and easy technique to summarize the main themes and topics in a text, allowing us to rapidly identify the most significant ideas and concepts.
+
+```{r}
+colors_rushmore <-  wes_palette("Rushmore", type = "continuous")
+#colors_rushmore <-rev(colors_rushmore) #Reverse the colors to avoid excesive beige
+
+wes_script %>% 
+  filter(movie =="Rushmore") %>% 
+  #Filter stopwords
+  anti_join(stop_words) %>%
+  #Count words
+  count(word) %>%
+  #Use the wordcloud function and add colors as an argument
+  with(wordcloud(word, n, max.words = 90, colors = colors_rushmore))
+
+
+```
+
+```{r}
+colors_moonrise <-  wes_palette("Moonrise3", type = "continuous")
+
+wes_script %>% 
+  filter(movie =="Moonrise Kingdom") %>% 
+  anti_join(stop_words) %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 90, colors = colors_moonrise))
+  
+
+```
+
+```{r}
+colors_fox <-  wes_palette("FantasticFox1", type = "continuous")
+
+wes_script %>% 
+  filter(movie =="Moonrise Kingdom") %>% 
+  anti_join(stop_words) %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 90, colors = colors_fox))
+  
+
+
+```
+
+After doing a word cloud fora each of the movies, we can also do a comparison word cloud for positive and negative movies in the three scripts.
+
+```{r}
+#Include as stop words some of the words we already saw mostly refer to characters names
+custome_stop_words <- bind_rows(tibble(word = c("miss", "master", "sharp"), 
+                                       lexicon = c("custom")), 
+                                stop_words)
+
+wes_script %>%
+    anti_join(custome_stop_words) %>%
+  #Get sentiments
+  inner_join(get_sentiments("bing")) %>%
+  #Count word mentions
+  count(word, sentiment, sort = TRUE) %>%
+  #Establish criteria for size
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  #Paint two wordclouds in one using two different colors
+  comparison.cloud(colors = c("#9e1906", "#89b151"),
+                   max.words = 100)
+
+```
+
+```{r}
+bing_word_counts <- wes_script %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+bing_word_counts
+```
+
+```{r}
+bing_word_counts %>%
+  anti_join(custome_stop_words) %>% 
+  group_by(sentiment) %>%
+  slice_max(n, n = 15) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(x = "Contribution to sentiment",
+       y = NULL) +
+  scale_fill_manual(values = wes_palette(3, name = "Rushmore", type = "continuous"), 
+                    name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+```
+
+This plot allows us to see the side by side comparison between the positive and negative words throughout the three scripts without the stop words and the additional ones that refer to character names. It is really nice to see that cuss is in the negative column and the second negative word most used after slowly
+
+## Term frequency
+
+So far, we have seen the word frequency of each script (how many times a word appears in a text). However, there are more sophisticated methods that allows us to better understand Anderson's narrative style:
+
+-   Term frequency (TF)→ How frequently a word appears in a document taking its length into account
+-   Inverse document frequency (IDF) → Measures how many times a word appears in a text compared to how many times it appears in the rest of the collection (relative value)
+-   TF-IDF → Balanced metric resulted from the multiplication of the previous concepts to measure the real value of a word in a document that is part of a collection.
+
+We previously established how many times each word appeared in each movie, so now we have to sum how many words are in total between the three scripts.
+
+```{r}
+total_words <- wes_words %>% 
+  #Group by movie to sum all the totals in the n column of wes_words
+  group_by(movie) %>% 
+  #Create a column called total with the total of words by movie
+  summarize(total = sum(n))
+
+total_words
+
+```
+
+Then we add this information (total number) to the dataframe with the function `left_join()`.
+
+```{r}
+wes_words <- left_join(wes_words, total_words)
+
+wes_words <- wes_words %>%
+  #Add a column for term_frequency in each novel
+  mutate(term_frequency = n/total)
+
+wes_words
+
+```
+
+Now we can visualize the information in a plot:
+
+```{r warning=FALSE, message=FALSE}
+ggplot(wes_words, aes(term_frequency, fill = movie)) +
+  #Create the bars histogram
+  geom_histogram(show.legend = TRUE) +
+  #Set the limit for the term frequency in the x axis
+  xlim(NA, 0.0009) +
+  #The Life Aquatic with Steve Zissou is another Anderson's film
+  scale_fill_manual(values = wes_palette(3, name = "Zissou1", 
+                                         type = "continuous"), name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+
+```
+
+-   \*\*X axis\*\*: different term frequencies for words in the collection of scripts.
+-   \*\*Y axis\*\*: how many words in each movie present each frequency.
+
+```{r}
+ggplot(wes_words, aes(term_frequency, fill = movie)) +
+  geom_histogram(show.legend = TRUE) +
+  xlim(NA, 0.0009) +
+  facet_wrap(~movie, ncol = 2, scales = "free_y") +
+  scale_fill_manual(values = wes_palette(3, name = "Zissou1", 
+                                         type = "continuous"), name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+
+
+```
+
+The three scripts follow a similar distribution: positive skewed. Most words have very low frequencies (on the left) and a few words have very high frequencies (on the right). Rushmore seems to have the biggest amount of words in the last category of the right.
+
+### Zipf's Law
+
+Zipf's Law is an empirical law that asserts that the frequency of each word in a large sample of texts is inversely related to its rank in the frequency table. To test it we add column for the rank to the dataframe, ranking the words in descending order by their frequency in the movie.
+
+```{r}
+freq_by_rank <- wes_words %>% 
+  group_by(movie) %>% 
+  #Create the column for the rank with row_number by movie
+  mutate(rank = row_number()) %>%
+  ungroup()
+
+freq_by_rank
+
+```
+
+```{r}
+freq_by_rank %>% 
+  ggplot(aes(rank, term_frequency, color = movie)) + 
+  geom_line(linewidth = 1.1, alpha = 0.8, show.legend = TRUE)  +
+  scale_color_manual(values = wes_palette(3, name = "Moonrise3"), name = "") 
+
+```
+
+```{r}
+freq_by_rank %>% 
+  ggplot(aes(rank,term_frequency, color = movie)) + 
+  geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) + 
+  #better to visualize it on logarithmic scales
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_color_manual(values = wes_palette(3, name = "Moonrise3"), name = "") 
+```
+
+We can observe how an inversely proportional relationship will have a consistent, negative slope from right to left when plotted in this manner.
+
+### Measuring deviation
+
+When we divide this plot into three pieces, we can see that the center to the right is the most stable. To calculate the specific coefficients of the relation between term frequency and rank we use a linear regression:
+
+```{r}
+rank_subset <- freq_by_rank %>% 
+  filter(rank < 500,
+         rank > 10)
+
+#Use the linear model function to find numeric coefficients of relationship between TF and rank
+lm(log10(term_frequency) ~ log10(rank), data = rank_subset)
+
+
+```
+
+We use this coefficients to draw a line in the plot to observe the deviation from the standard use of language. This is a great way to visualize the Wes Anderson's deviation, specially in the first section (upper left part).
+
+```{r}
+freq_by_rank %>% 
+  ggplot(aes(rank, term_frequency, color = movie)) + 
+  #we add a line in the plot with the two coefficients we have found
+  geom_abline(intercept = -0.62, slope = -1.1, 
+              color = "#fe6d7e", linetype = 2) +
+  geom_line(size = 1.1, alpha = 0.8, show.legend = FALSE) + 
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_color_manual(values = wes_palette(3, name = "Moonrise3"), name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+```
+
+### TF-IDF
+
+```{r}
+wes_tf_idf <- wes_words %>%
+  bind_tf_idf(word, movie, n)
+
+wes_tf_idf
+
+```
+
+These first words in the dataframe have very low TF-IDF, near zero, because these are words that occur in many of the documents in a collection (dataframe is sorted by count).
+
+The more documents containing the word, the less distinctive it is of any of them, so the TF-IDF metric will be higher for words that occur fewer times. The TF-IDF analysis rewards these words.
+
+To check this, we just have to arrange the dataframe by tf-idf:
+
+```{r}
+wes_tf_idf %>%
+  #we exclude the total column which is not necessary now
+  select(-total) %>%
+  #we arrange by tf-idf in descending order
+  arrange(desc(tf_idf))
+
+```
+
+```{r}
+wes_stop_words <- tibble(word = c("kylie", "ash", "kristofferson", "badger", "boggis", "bunce",
+                                 "sam", "suzy", "skotak", "bishop", "master", "captain","ward",
+                                 "max", "blume", "miss", "fischer", "margaret", "guggenheim",
+                                 "magnus"))
+```
+
+```{r}
+wes_tf_idf %>%
+  anti_join(wes_stop_words) %>% 
+  group_by(movie) %>%
+  #choose maximum number of words
+  slice_max(tf_idf, n = 10) %>%
+  ungroup() %>%
+  ggplot(aes(tf_idf, fct_reorder(word, tf_idf), fill = movie)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~movie, ncol = 2, scales = "free") +
+  labs(x = "tf-idf", y = NULL) +
+  scale_fill_manual(values = wes_palette(3, name = "Moonrise3"), name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+
+```
+
+What measuring tf-idf has done here is show us that Jane Austen used similar language across her six novels, and \*\*what distinguishes one novel from the rest\*\* within the collection of her works \*\*are the proper nouns, the names of people and places\*\*.
+
+d
+
+## N-grams
+
+```{r}
+wes_bigrams <- script %>%
+  #we take the text in austen_books, and tokenize it to sequences of 2 words
+  unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+  #we filter all N/A outputs
+  filter(!is.na(bigram))
+
+wes_bigrams
+
+```
+
+```{r}
+wes_bigrams %>%
+  count(bigram, sort = TRUE)
+
+```
+
+```{r}
+library(tidyr)
+
+bigrams_separated <-wes_bigrams %>%
+  #we separate each bigram in two columns, word1 and word2
+  separate(bigram, c("word1", "word2"), sep = " ")
+
+bigrams_separated
+
+```
+
+```{r}
+#we filter all words included in the word column in stop_words
+bigrams_filtered <- bigrams_separated %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+
+bigrams_filtered
+
+```
+
+```{r}
+bigram_counts <- bigrams_filtered %>% 
+  count(word1, word2, sort = TRUE)
+
+bigram_counts
+
+```
+
+```{r}
+bigrams_united <- bigrams_filtered %>%
+  unite(bigram, word1, word2, sep = " ")
+
+bigrams_united
+
+```
+
+### Combine with TF-IDF
+
+```{r}
+#we use the bigrams united dataframe
+bigram_tf_idf <- bigrams_united %>%
+  #we count by book
+  count(movie, bigram) %>%
+  #we perform tf_idf
+  bind_tf_idf(bigram, movie, n) %>%
+  #we arrange in descending order
+  arrange(desc(tf_idf))
+
+bigram_tf_idf
+
+```
+
+```{r}
+bigram_tf_idf %>%
+  group_by(movie) %>%
+  #choose maximum number of words
+  slice_max(tf_idf, n = 10) %>%
+  ungroup() %>%
+  ggplot(aes(tf_idf, fct_reorder(bigram, tf_idf), fill = movie)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~movie, ncol = 2, scales = "free") +
+  labs(x = "tf-idf", y = NULL) +
+  #The French Dispatch is Wes Anderson most recent movie
+  scale_fill_manual(values = wes_palette(3, name = "FrenchDispatch"), name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+
+```
+
+```{r}
+bigrams_separated %>%
+  filter(word1 == "not") %>% #love
+  count(word1, word2, sort = TRUE)
+
+```
+
+```{r}
+AFINN <- get_sentiments("afinn")
+
+negation_words <- c("not", "no", "never", "without")
+
+negated_words <- bigrams_separated %>%
+  filter(word1 %in% negation_words) %>%
+  inner_join(AFINN, by = c(word2 = "word")) %>%
+  count(word1, word2, value, sort = TRUE)
+
+negated_words
+
+
+```
+
+```{r}
+negated_words %>%
+  mutate(contribution = n * value,
+         sign = if_else(value > 0, "postive", "negative")) %>%
+  group_by(word1) %>% 
+  top_n(15, abs(contribution)) %>%
+  ungroup() %>%
+  ggplot(aes(y = reorder_within(word2, contribution, word1), 
+             x = contribution, 
+             fill = sign)) +
+  geom_col() + 
+  scale_y_reordered() + 
+  facet_wrap(~ word1, scales = "free") + 
+  labs(y = 'Words preceeded by a negation',
+       x = "Contribution (Sent value * number of mentions)",
+       title = "Most common pos or neg words to follow negations")
+
+```
+
+dsadc
