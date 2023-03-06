@@ -756,7 +756,7 @@ lm(log10(term_frequency) ~ log10(rank), data = rank_subset)
 
 ```
 
-We use this coefficients to draw a line in the plot to observe the deviation from the standard use of language. This is a great way to visualize theAnderson's deviation in the use of language, specially in the first section (upper left part).
+We use this coefficients to draw a line in the plot to observe the deviation from the standard use of language. This is a great way to visualize the Anderson's deviation in the use of language, specially in the first section (upper left part).
 
 ```{r}
 freq_by_rank %>% 
@@ -965,7 +965,7 @@ rushmore_bigram %>%
 
 ```
 
-From the Rushmore bigram plot we can see a big cloud of points coming out of Max. These are Max's actions throughout the script: Max holds, Max leaves, Max stares, Max waves, Max watches, Max nods smiles sadly (after all he is the protagonist of this story). They tell us a lot about the contemplative character of Max. There are some other really nice bigrams that remind us about the school scenario where the plot takes place like geometry test , yearbook photographer or lower school. And in another way, bigramas such as hand job also tell us about the interest, humor and rumors, that take place on the plot (e.g., "Did you say my mother gave you a hand job?"). T[here is even a short video compiling these moments.](https://www.youtube.com/watch?v=hJKTkcq_xh4)
+From the Rushmore bigram plot we can see a big cloud of points coming out of Max. These are Max's actions throughout the script: Max holds, Max leaves, Max stares, Max waves, Max watches, Max nods smiles sadly (after all he is the protagonist of this story). They tell us a lot about the contemplative character of Max. There are some other really nice bigrams that remind us about the school scenario where the plot takes place like geometry test , yearbook photographer or lower school. And in another way, bigrams such as hand job also tell us about the interest, humor and rumors, that take place on the plot (e.g., "Did you say my mother gave you a hand job?"). T[here is even a short video compiling these moments.](https://www.youtube.com/watch?v=hJKTkcq_xh4)
 
 ```{r}
 moonrise_bigram <-  script %>% 
