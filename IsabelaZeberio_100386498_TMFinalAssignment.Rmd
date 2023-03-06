@@ -1,15 +1,18 @@
 ---
-title: "IsabelaZeberio_100386498_TMFinalAssignment"
+title: "Wes Anderson's Script Analysis"
 author: "Isabela Zeberio"
-date: "2023-03-01"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+ rmdformats::robobook
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.showtext=TRUE,
+                      fig.align="center",
+                      out.width="100%")
 ```
 
-```{r}
+```{r warning=FALSE, message=FALSE}
 library(dplyr)
 library(tidyverse)
 library(tidytext)
@@ -25,6 +28,9 @@ library(rnaturalearth)
 library(scales)
 library(reshape2)
 library(wordcloud)
+library(ggraph)
+library(igraph)
+library(widyr)
 ```
 
 ## Wes Anderson
@@ -33,7 +39,7 @@ Wes Anderson is an American filmmaker known for his distinct visual style, eccen
 
 Thanks to `library(wesanderson)` we can access in R to Anderson's bright and colorful world, but does his script follow this style? Are his characters always cheerful and lively? Is the language he uses always positive? Those who have seen his films know that behind this facade there is something else, but what do the words of his scripts tell us by themselves?
 
-Following Karthik's package statement, let's create the most indie final assignment for a course
+Following Karthik's package statement, let's create the most indie final assignment for a course.
 
 ## Scripts
 
@@ -55,15 +61,15 @@ All the palettes available:
 names(wes_palettes)
 ```
 
-In order to convert the scripts into variables we have to read the webpage using `read_html()` and extract the text from. The function `xml_child()` is used to obtain the nodes of the webpage. The instructions are the same for all 3 scripts, it is needed to obtain the character vector with the text of the scripts.
+In order to convert the scripts into variables we have to read the webpage using `read_html()` and extract the text from. The function `xml_child()` is used to obtain the nodes of the webpage. The code and procedure is the same for all 3 scripts, what we need is to obtain the character vector with the text of the scripts.
 
 After reading and inspecting [IMSDb](https://imsdb.com/) webpage, I see that the information we want to extract is in the \<td\> tag with the class scrtext.
 
--   The function `xml_find_all()` allow us to extract the specific nodes containing the screeplay text.
+-   The function `xml_find_all()` allow us to extract the specific nodes containing the screenplay text.
 -   The function `xml_text()` returns a character vector.
--   The function `str_split()` takes the character vector from the previous step and returns a list split by "\\r\\n" which represent line breaks and indicate us the start of a new line
+-   The function `str_split()` takes the character vector from the previous step and returns a list split by "\\r\\n" which represent line breaks and indicate us the start of a new line.
 
-Character names in a script are frequently written in all capital letters when they are first introduced (e.g., **MAX, CAPTAIN SHARP, LAZY-EYE, FOX**). This is a convention used to help the reader recognize new characters and differentiate them from speech and other components of the script. However, for text analysis, we do not want these names repeating themselves every time a character speaks. Specially since word frequency and the context of words is so important to understand the text. I removed the all capital names with the function `str_replace_all()` to avoid the overrepresentation on the analysis.
+Character names in a script are frequently written in all capital letters when they are first introduced (e.g., **MAX, CAPTAIN SHARP, LAZY-EYE, FOX**). This is a convention used to help the reader recognize new characters and differentiate them from speech and other components of the script. However, for text analysis, we do not want these names repeating themselves every time a character speaks. Specially since word frequency and the context of words is so important to understand the text. I removed the all capital names with the function `str_replace_all()` to avoid the overrepresentation of the names on the analysis.
 
 The only thing left to do is to remove all the extra space between lines. I used `grepl()` function to search the pattern "\^\$", which represents an empty line or blank space, and keep the lines that do not contain the pattern by placing a ! character before `grepl()`.
 
@@ -178,7 +184,7 @@ After obtaining the text from each script and taking a first look at the colors 
 
 ## Tokenization
 
-As we saw in class, tokenization is the process of breaking down a piece of text into individual units called tokens, which are meaningful units of text
+As we saw in class, tokenization is the process of breaking down a piece of text into individual units called tokens, which are meaningful units of text.
 
 ```{r}
 wes_script <- script %>%
@@ -187,7 +193,7 @@ wes_script <- script %>%
 
 Stop words have grammatical meaning but do not add to text mining (e.g.,"the", "or", "a"). Thus the next step is to filter them by using `anti_join()`
 
-```{r}
+```{r R.options=list(max.print=20)}
 wes_script <- wes_script %>% 
   anti_join(stop_words)
 
@@ -207,9 +213,9 @@ rushmore_words <- wes_script %>%
 rushmore_words
 ```
 
-In Rushmore we see that the two most frequent words are Max and Blume, character names. The next two are a little bit confusing if you have not seen the movies since the other really important character of this movie is Miss Rosemary Cross.
+In Rushmore we see that the two most frequent words are Max and Blume, character names. The next two are a little bit confusing if you have not seen the movies since they go together and refer to another really important character in this movie, Miss Rosemary Cross.
 
-After the names of the characters, the most repeated words that begin to give us some clues about the overall tone of this film are dirk, pause, nods, smiles, silence, hands, starts, eyes, and school. Many of the words we see describe the actions ore movement the actors have to follow. However, we can perceive in this first reading a contemplative, intimate or introspective tone with moments of silence, nods, and eye contact indicating characters are reflecting on their thoughts and feelings. The world school is also a great indicator of where this story takes place.
+After the names of the characters, the most repeated words that begin to give us some clues about the overall tone of this film are dirk, pause, nods, smiles, silence, hands, starts, eyes, and school. Many of the words we see describe the actions or movements the actors have to follow. However, we can perceive in this first reading a contemplative, intimate or introspective tone with moments of silence, nods, and eye contact indicating characters are reflecting on their thoughts and feelings. The world school is also a great indicator of where this story takes place.
 
 ```{r}
 wes_script %>% 
@@ -236,7 +242,7 @@ moonrise_words <- wes_script %>%
 moonrise_words
 ```
 
-In the case of Moonrise Kingdom, we see that, once again, the two most common words are our main characters' names: Sam and Suzy. However, the third word, scout, is a really good hint about who the main characters are. and as was also the case with Rusmore, we find some words that seem to point to something but are character names: Scout Master Randy Ward, Captain Sharp or Skotak. Nonetheless, the words also show the hierarchical ranking organization like the Scouts normally use. The division of power and the names used by the Scouts comes from the military, thus the use of words like troop, services or commander fits in the scenario where this story takes place.
+In the case of Moonrise Kingdom, we see that, once again, the two most common words are our main characters' names: Sam and Suzy. However, the third word, scout, is a really good hint about who the main characters are, and, as was also in the case of Rushmore, we find some words that seem to point to something but are character names: Scout Master Randy Ward, Captain Sharp or Skotak. Nonetheless, the words also show the hierarchical ranking organizations like the Scouts normally use. The division of power and the names used by the Scouts comes from the military, thus the use of words like troop, services or commander fits in the scenario where this story takes place.
 
 ```{r}
 wes_script %>% 
@@ -263,12 +269,12 @@ In our third script, we also find as the most frequent words charter names but, 
 
 But, what does *cuss* means?
 
-```{r}
+```{r R.options=list(max.print=20)}
 fox %>%
   filter(str_detect(text, "cuss"))
 ```
 
-Cuss is a great word to analyze. For non-native English speakers it does not make a lot of sense if we see the word by itself. We need the context of this word to understand what it means. When we read the whole sentence we realize that cuss is used for cursing, it seems like a family-friendly substitute for fuck or shit.
+Cuss is a great word to analyze. For non-native English speakers it does not make a lot of sense if we see the word by itself. We need the context of this word to understand what it means. When we read the whole sentence we realize that cuss is used for cursing, it seems like a family-friendly substitute for *fuck* or *shit*.
 
 -   Oh cuss. What time is it?
 -   Stinks like cuss
@@ -295,7 +301,7 @@ wes_script %>%
 
 Anderson's scripts often feature highly specific and detailed descriptions of settings and characters, which help to create a strong sense of visual style and tone.
 
-```{r}
+```{r R.options=list(max.print=20)}
 frequency <- wes_script %>% 
   mutate(word = str_extract(word, "[a-z']+")) %>%
   #we count number of mentions of a word in each movie
@@ -315,7 +321,7 @@ frequency
 
 ```
 
-There is a column named "Rushmore" with proportion of the movie because it is our reference. We are comparing the words used in Moonrise Kingdom and Fantastic Mr. Fox with the ones used in Rushmore.
+There is a new column named "Rushmore" with proportions of the movie because it is our reference. We are comparing the words used in Moonrise Kingdom and Fantastic Mr. Fox with the ones used in Rushmore.
 
 ```{r message=FALSE}
 
@@ -334,7 +340,7 @@ ggplot(frequency, aes(x = proportion, y = `Rushmore`,
     labs(y = "Rushmore", x = NULL)
 ```
 
-The plot helps to understand which words have in common the different scripts. The words that are close to the line, have similart frequencies in both sets of texts. The further they are to the right and to the upper zone of the plot, the more frequent they appear in both scripts. For example, Fantastic Mr. Fox and Rushmore have in the high frequency area words like door, head and black. We can glean a little more information from the comparison with Moonrise Kingdom by finding words like cigarette, bloody, and died, more explicit words. The words that are in the low left part of the plot are in the low frequency area. Lastly, words that are far from the line are words that are found more in one set of texts than another. For instance, it is interesting to observe that the word kid and its plural is used much more in Rushmore than in Moonrise Kingdom since the main characters of the latter are younger than the protagonist of Rushmore. It is noteworthy because Rushmore is a coming of age movie in which Max Fischer, the protagonist is an eccentric 15-year-old who is constantly interacting with older people: he falls in love with a first-grade teacher, Miss Cross, and befriends a wealthy industrialist, Herman Blume.
+The plot helps to understand which words have in common the different scripts. The words that are close to the line, have similar frequencies in both sets of texts. The further they are to the right and to the upper zone of the plot, the more frequent they appear in both scripts. For example, Fantastic Mr. Fox and Rushmore have in the high frequency area words like door, head and black. We can glean a little more information from the comparison with Moonrise Kingdom by finding words like cigarette, bloody, and died, more explicit words. The words that are in the low left part of the plot are in the low frequency area. Lastly, words that are far from the line are words that are found more in one set of texts than another. For instance, it is interesting to observe that the word kid and its plural is used much more in Rushmore than in Moonrise Kingdom since the main characters of the latter are younger than the protagonist of Rushmore. It is noteworthy because Rushmore is a coming of age movie in which Max Fischer, the protagonist is an eccentric 15-year-old who is constantly interacting with older people: he falls in love with a first-grade teacher, Miss Cross, and befriends a wealthy industrialist, Herman Blume.
 
 ### Word correlation
 
@@ -350,13 +356,13 @@ cor.test(data = frequency[frequency$movie == "Moonrise Kingdom",],
          ~ proportion + `Rushmore`)
 ```
 
-Both Moonrise Kingdom and Fantastic Mr. Fox are weakly correlated to Rushmore, being Fantastic Mr. Fox (0.388) a little more correlated to Rushmore than Moonrise Kingdom (0.339).
+Both, Moonrise Kingdom and Fantastic Mr. Fox, are weakly correlated to Rushmore, being Fantastic Mr. Fox (0.388) a little more correlated to Rushmore than Moonrise Kingdom (0.339).
 
 ## Sentiment analysis
 
 Sentiment analysis is a natural language processing technique to determine the emotional tone of the content. In this case, the goal is to determine whether the scripts are expressing a positive, negative, or neutral sentiment.
 
-Using sentiment analysis on Wes Anderson's scripts could reveal information about the emotional tone of his films. Wes Anderson's films are noted for their quirky and enchanting style, and sentiment analysis could contribute to uncovering the underlying emotional themes that run throughout his films.
+Using sentiment analysis on Wes Anderson's scripts could reveal information about the emotional tone of his films. Wes Anderson's films are noted for their quirky and enchanting style, and sentiment analysis could contribute to uncovering the underlying emotional themes that are recurrent in his films.
 
 ### Joy words
 
@@ -433,14 +439,14 @@ fox_joy %>%
 The plots show us that one of the most frequents and recurrent word of joy is tree. Trees appear frequently in Wes Anderson's movies, serving as a powerful metaphor of nature and growth:
 
 -   Rushmore → Trees are part of the scenery, many sequences in the film show Max and other characters walking through tree-lined walks on the Rushmore Academy campus. Trees tend to be used to represent the passage of time and the growth of the characters.
--   Moonrise Kingdom → Not only the movie's setting, a fictional island off the coast of New England, is heavily wooded, but also as good scouts, the idea of tree houses appears in the script.
--   Fantastic Mr. Fox →Trees play a really important part in this film as the family of foxes lives inside one. The trees provide protection for Mr. Fox as he outwits his human rivals and snatches food from their farms throughout the movie.
+-   Moonrise Kingdom → Not only the movie's setting, a fictional island off the coast of New England, is heavily wooded, but also, as good scouts, the idea of tree houses appears in the script.
+-   Fantastic Mr. Fox → Trees play a really important part in this film as the family of foxes lives inside one. The trees provide protection for Mr. Fox as he outwits his human rivals and snatches food from their farms throughout the movie.
 
 Other frequent joy words we can observe through these movies are love (recurrent theme in all three movies), dance and jump (actions that we see the characters in these movies frequently doing).
 
 ### Comparing the sentiments between films
 
-```{r}
+```{r R.options=list(max.print=20)}
 wes_sentiment <- wes_script %>%
   #find the sentiment for each word using bing
   inner_join(get_sentiments("bing")) %>%
@@ -468,9 +474,7 @@ ggplot(wes_sentiment, aes(index, sentiment, fill = movie)) +
 
 ```
 
-This plot is very interesting because despite Anderson's aesthetics, the feelings we see in his films are
-
-predominantly negative (I would rather say nostalgic):
+This plot is very interesting because despite Anderson's aesthetics, the feelings we see in his films are predominantly negative (though I would rather say nostalgic):
 
 -   Rushmore → Max is a smart but troubled teenager who struggles with his feelings for his teacher and his place in the world. Loss and rejection are key themes in the film.
 
@@ -529,13 +533,13 @@ bind_rows(afinn,
   facet_wrap(~method, ncol = 1, scales = "free_y")
 ```
 
-Now we can observe how different narrative plot can be just depending on the sentiment lexicon we use.
+Now we can observe how different narrative plots can be just depending on the sentiment lexicon we use.
 
--   AFINN tell us that the script has predominantly negative words, a lot of low values and very few positive values
+-   AFINN tell us that the script has predominantly negative words, a lot of low values and very few positive values.
 -   Bing et al. show more variety and a positive ending after two blocks of negative narrative. It has some of the same negative points as AFINN but interprets much more events as positive.
 -   NRC has the largest blocks. The beginning is the opposite of what the other two sentiment lexicons tell us. The ends of the script matches slightly with Bing et al.
 
-This graph is a great example of why we can't blindly trust lexicons, each one has a particular type of bias. In class we learned that there are three possible biases :
+This graph is a great example of why we can't blindly trust lexicons, each one has a particular type of bias. In class we learned that there are three possible biases:
 
 -   The language is biased toward negative emotions (more negative than positive words).
 -   The language is biased toward pleasant emotions (more positive than negative words).
@@ -543,7 +547,7 @@ This graph is a great example of why we can't blindly trust lexicons, each one h
 
 ### Word cloud
 
-A popular technique for visualizing the most frequently occurring words in a piece of text is wordcloud. It is a quick and easy technique to summarize the main themes and topics in a text, allowing us to rapidly identify the most significant ideas and concepts.
+A popular technique for visualizing the most frequently occurring words in a piece of text is wordcloud. It is a quick and easy technique to summarize the main themes and topics in a text, allowing us to rapidly identify the most significant ideas and concepts. Thus, let's see in a different way this recurrent words we have been discussing.
 
 ```{r}
 colors_rushmore <-  wes_palette("Rushmore", type = "continuous")
@@ -608,7 +612,7 @@ wes_script %>%
 
 ```
 
-```{r}
+```{r R.options=list(max.print=20)}
 bing_word_counts <- wes_script %>%
   inner_join(get_sentiments("bing")) %>%
   count(word, sentiment, sort = TRUE) %>%
@@ -634,19 +638,19 @@ bing_word_counts %>%
   guides(fill = guide_legend(reverse = TRUE))
 ```
 
-This plot allows us to see the side by side comparison between the positive and negative words throughout the three scripts without the stop words and the additional ones that refer to character names. It is really nice to see that cuss is in the negative column and the second negative word most used after slowly
+This plot allows us to see the side by side comparison between the positive and negative words throughout the three scripts without the stop words and the additional ones that refer to character names. It is really nice to see that cuss is in the negative column and the second negative word most used after slowly.
 
 ## Term frequency
 
 So far, we have seen the word frequency of each script (how many times a word appears in a text). However, there are more sophisticated methods that allows us to better understand Anderson's narrative style:
 
--   Term frequency (TF)→ How frequently a word appears in a document taking its length into account
+-   Term frequency (TF) → How frequently a word appears in a document taking its length into account
 -   Inverse document frequency (IDF) → Measures how many times a word appears in a text compared to how many times it appears in the rest of the collection (relative value)
 -   TF-IDF → Balanced metric resulted from the multiplication of the previous concepts to measure the real value of a word in a document that is part of a collection.
 
 We previously established how many times each word appeared in each movie, so now we have to sum how many words are in total between the three scripts.
 
-```{r}
+```{r R.options=list(max.print=20)}
 total_words <- wes_words %>% 
   #Group by movie to sum all the totals in the n column of wes_words
   group_by(movie) %>% 
@@ -659,7 +663,7 @@ total_words
 
 Then we add this information (total number) to the dataframe with the function `left_join()`.
 
-```{r}
+```{r R.options=list(max.print=20)}
 wes_words <- left_join(wes_words, total_words)
 
 wes_words <- wes_words %>%
@@ -700,13 +704,13 @@ ggplot(wes_words, aes(term_frequency, fill = movie)) +
 
 ```
 
-The three scripts follow a similar distribution: positive skewed. Most words have very low frequencies (on the left) and a few words have very high frequencies (on the right). Rushmore seems to have the biggest amount of words in the last category of the right.
+The three scripts follow a similar distribution: positive skewed. Most words have very low frequencies (on the left) and a few words have very high frequencies (on the right). Rushmore seems to have the biggest amount of words in the last category of the right, while Moonrise Kingdom has the longest tail.
 
 ### Zipf's Law
 
-Zipf's Law is an empirical law that asserts that the frequency of each word in a large sample of texts is inversely related to its rank in the frequency table. To test it we add column for the rank to the dataframe, ranking the words in descending order by their frequency in the movie.
+Zipf's Law is an empirical law that asserts that the frequency of each word in a large sample of texts is inversely related to its rank in the frequency table. To test it we add column for the rank to the dataframe, ranking the words in descending order by their frequency in the movie script.
 
-```{r}
+```{r R.options=list(max.print=20)}
 freq_by_rank <- wes_words %>% 
   group_by(movie) %>% 
   #Create the column for the rank with row_number by movie
@@ -752,7 +756,7 @@ lm(log10(term_frequency) ~ log10(rank), data = rank_subset)
 
 ```
 
-We use this coefficients to draw a line in the plot to observe the deviation from the standard use of language. This is a great way to visualize the Wes Anderson's deviation, specially in the first section (upper left part).
+We use this coefficients to draw a line in the plot to observe the deviation from the standard use of language. This is a great way to visualize theAnderson's deviation in the use of language, specially in the first section (upper left part).
 
 ```{r}
 freq_by_rank %>% 
@@ -769,37 +773,41 @@ freq_by_rank %>%
 
 ### TF-IDF
 
-```{r}
+```{r R.options=list(max.print=20)}
 wes_tf_idf <- wes_words %>%
-  bind_tf_idf(word, movie, n)
+  bind_tf_idf(word, movie, n) %>% 
+  # find the words most distinctive to each document
+  arrange(desc(tf_idf))
 
-wes_tf_idf
+tail(wes_tf_idf, n=20)
 
 ```
 
-These first words in the dataframe have very low TF-IDF, near zero, because these are words that occur in many of the documents in a collection (dataframe is sorted by count).
+These first words in the dataframe have very high TF-IDF, because they are the most distinctive words of each script ( TF-IDF analysis rewards words that occur few times), and the ones with the low TF-IDF are the words that occur in many of the textx in these script collection (e.g., wood, version, weather, worry, worse, wounded)
 
-The more documents containing the word, the less distinctive it is of any of them, so the TF-IDF metric will be higher for words that occur fewer times. The TF-IDF analysis rewards these words.
+Another way to check the most distinctive words of each sript, we just have to arrange the dataframe by TF-IDF:
 
-To check this, we just have to arrange the dataframe by tf-idf:
-
-```{r}
+```{r R.options=list(max.print=20)}
 wes_tf_idf %>%
-  #we exclude the total column which is not necessary now
+  #Exclude the total column which is not necessary now
   select(-total) %>%
-  #we arrange by tf-idf in descending order
+  #Arrange by tf-idf in descending order
   arrange(desc(tf_idf))
 
 ```
+
+What we see is that the most distinctive words of each script are their character names. Because character names are that unique.
+
+Since the names of the characters are so distinctive of each script, I have decided to consider them as stop words to see what other words are characterizing each movie.
 
 ```{r}
 wes_stop_words <- tibble(word = c("kylie", "ash", "kristofferson", "badger", "boggis", "bunce",
                                  "sam", "suzy", "skotak", "bishop", "master", "captain","ward",
                                  "max", "blume", "miss", "fischer", "margaret", "guggenheim",
-                                 "magnus"))
+                                 "magnus", "rushmore", "dirk", "fox", "scout"))
 ```
 
-```{r}
+```{r R.options=list(max.print=20)}
 wes_tf_idf %>%
   anti_join(wes_stop_words) %>% 
   group_by(movie) %>%
@@ -815,42 +823,46 @@ wes_tf_idf %>%
 
 ```
 
-What measuring tf-idf has done here is show us that Jane Austen used similar language across her six novels, and \*\*what distinguishes one novel from the rest\*\* within the collection of her works \*\*are the proper nouns, the names of people and places\*\*.
-
-d
+What measuring TF-IDF has done here is show us that Wes Anderson uses a very different language across these three scripts. Another way to understand this graphic is to appreciate the distinct and unique worlds Wes Anderson creates. Anderson's scripts are not only different from one another because of proper nouns or names of people, but for the atmosphere, the story-line, the surroundings. We have the story of a anthropomorphic fox, with human-like qualities, who steals food from three wealthy farmers; the story of two young lovers who run away from home and the community that comes together to search for them; and the story of precocious high school student who is struggling to find his place in the world.
 
 ## N-grams
 
-```{r}
+If we want to deal with something more than individual units, we recur to n-grams. They are consecutive sequences of words where 'n' denotes the number of words constituting a token.
+
+Bigrams are tokens composed by two words:
+
+```{r R.options=list(max.print=20)}
 wes_bigrams <- script %>%
-  #we take the text in austen_books, and tokenize it to sequences of 2 words
+  #Tokenize Anderon's scripts into sequences of 2 words
   unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
-  #we filter all N/A outputs
+  #Filter all N/A outputs
   filter(!is.na(bigram))
 
 wes_bigrams
 
 ```
 
-```{r}
+The most frequent bigrams in Anderson's scripts are:
+
+```{r R.options=list(max.print=20)}
 wes_bigrams %>%
   count(bigram, sort = TRUE)
 
 ```
 
-```{r}
+```{r R.options=list(max.print=20)}
 library(tidyr)
 
 bigrams_separated <-wes_bigrams %>%
-  #we separate each bigram in two columns, word1 and word2
+  #Separate each bigram in two columns, word1 and word2
   separate(bigram, c("word1", "word2"), sep = " ")
 
 bigrams_separated
 
 ```
 
-```{r}
-#we filter all words included in the word column in stop_words
+```{r R.options=list(max.print=20)}
+#Filter all words included in the word column in stop_words
 bigrams_filtered <- bigrams_separated %>%
   filter(!word1 %in% stop_words$word) %>%
   filter(!word2 %in% stop_words$word)
@@ -859,7 +871,9 @@ bigrams_filtered
 
 ```
 
-```{r}
+New bigram count:
+
+```{r R.options=list(max.print=20)}
 bigram_counts <- bigrams_filtered %>% 
   count(word1, word2, sort = TRUE)
 
@@ -867,7 +881,9 @@ bigram_counts
 
 ```
 
-```{r}
+The function `unite()` is used to reunite the previously separated bigrams in a single column
+
+```{r R.options=list(max.print=20)}
 bigrams_united <- bigrams_filtered %>%
   unite(bigram, word1, word2, sep = " ")
 
@@ -877,44 +893,197 @@ bigrams_united
 
 ### Combine with TF-IDF
 
-```{r}
-#we use the bigrams united dataframe
+```{r R.options=list(max.print=20)}
 bigram_tf_idf <- bigrams_united %>%
-  #we count by book
+  #Count by movie
   count(movie, bigram) %>%
-  #we perform tf_idf
+  #Perform tf_idf
   bind_tf_idf(bigram, movie, n) %>%
-  #we arrange in descending order
+  #Arrange in descending order
   arrange(desc(tf_idf))
 
 bigram_tf_idf
 
 ```
 
-```{r}
+```{r R.options=list(max.print=20)}
 bigram_tf_idf %>%
   group_by(movie) %>%
-  #choose maximum number of words
+  #Maximum number of words set at 10
   slice_max(tf_idf, n = 10) %>%
   ungroup() %>%
   ggplot(aes(tf_idf, fct_reorder(bigram, tf_idf), fill = movie)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~movie, ncol = 2, scales = "free") +
   labs(x = "tf-idf", y = NULL) +
-  #The French Dispatch is Wes Anderson most recent movie
+  #To see some of the other palettes the wesanderson library offers, I plot this graph with the French Dispatch color palette; it is Wes Anderson most recent movie
   scale_fill_manual(values = wes_palette(3, name = "FrenchDispatch"), name = "") +
   guides(fill = guide_legend(reverse = TRUE))
 
 ```
 
+### Bigram function
+
+To have a better understanding of bigrams in Anderson's scripts let's incorporate the `wes_stop_words` to the function we learned in class to count and visualize n-grams more easily.
+
 ```{r}
-bigrams_separated %>%
-  filter(word1 == "not") %>% #love
-  count(word1, word2, sort = TRUE)
+count_bigrams <- function(dataset) {
+  dataset %>%
+    unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+    separate(bigram, c("word1", "word2"), sep = " ") %>%
+    filter(!word1 %in% stop_words$word,
+           !word2 %in% stop_words$word) %>%
+    count(word1, word2, sort = TRUE)
+}
+
+visualize_bigrams <- function(bigrams) {
+  set.seed(1969)
+  a <- grid::arrow(type = "closed", length = unit(.15, "inches"))
+  
+  bigrams %>%
+    graph_from_data_frame() %>%
+    ggraph(layout = "fr") +
+    geom_edge_link(aes(edge_alpha = n), show.legend = FALSE, arrow = a) +
+    geom_node_point(size = 3, alpha = 0.8) +
+    geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+    theme_void()
+}
 
 ```
 
 ```{r}
+rushmore_bigram <-  script %>% 
+  filter(movie=="Rushmore") %>% 
+  count_bigrams()
+
+rushmore_bigram %>%
+  filter(n>3) %>% 
+  drop_na() %>% 
+  visualize_bigrams() +
+  geom_node_point(size = 5, color="#032b5f")
+
+
+```
+
+From the Rushmore bigram plot we can see a big cloud of points coming out of Max. These are Max's actions throughout the script: Max holds, Max leaves, Max stares, Max waves, Max watches, Max nods smiles sadly (after all he is the protagonist of this story). They tell us a lot about the contemplative character of Max. There are some other really nice bigrams that remind us about the school scenario where the plot takes place like geometry test , yearbook photographer or lower school. And in another way, bigramas such as hand job also tell us about the interest, humor and rumors, that take place on the plot (e.g., "Did you say my mother gave you a hand job?"). T[here is even a short video compiling these moments.](https://www.youtube.com/watch?v=hJKTkcq_xh4)
+
+```{r}
+moonrise_bigram <-  script %>% 
+  filter(movie=="Moonrise Kingdom") %>% 
+  count_bigrams()
+
+moonrise_bigram %>%
+  filter(n>3) %>% 
+  drop_na() %>% 
+  visualize_bigrams() +
+  geom_node_point(size = 5, color="#f4b5bd")
+
+```
+
+From the Moonrise Kingdom bigram it is worth highlighting how the two nodes with the most neighbors are one again our protagonist: Suzy and Sam. In addition, we have some scout-related bigrams such as walkie talkie, command tent, khaki scouts, and camp ivanhoe.
+
+```{r}
+fox_bigram <-  script %>% 
+  filter(movie=="Fantastic Mr. Fox") %>% 
+  count_bigrams()
+
+fox_bigram %>%
+  filter(n>3) %>% 
+  drop_na() %>% 
+  visualize_bigrams() +
+  geom_node_point(size = 5, color="#e3782f")
+```
+Lastly, in the Fantastic Mr. Fox bigram plot we observe how the node with most connections is fox. This shows not only fox's actions but also a really big danger for the featured family: a fox trap. Some other examples of interesting bigrams that let us know about the plot of the story are: wild life, chicken house, double pneumonia, courtyard doors, camera crew which is related to action 13 (Action 13 camera crew), and fire truck.
+
+Besides being able to see the words that go together, we can also analyze words that appear in the same context, but not necessarily together. The first thing we need to do for this is to take Anderson's scripts and split them in section of 10 lines. This way we create a dataframe with the tokenised word and a column that indicates the section where token appears in the scripts.
+
+In order to figure out which pairs of words appear together across the scripts, in more than one section, we will use the function `pairwise_count()` which gives one row for each pair of words, and the number of times they co-appeared in the same section of 10 lines.
+
+```{r R.options=list(max.print=20)}
+wes_section_words <- script %>%
+  mutate(section = row_number() %/% 10) %>%
+  filter(section > 0) %>%
+  unnest_tokens(word, text) %>%
+  filter(!word %in% stop_words$word)
+
+
+wes_word_pairs <- wes_section_words %>%
+  pairwise_count(word, section, sort = TRUE)
+
+wes_word_pairs
+
+```
+What we observe in the results are mostly character names. This technique is convenient to know which characters appear on the same context. For example, Sam and Suzy, and Suzy and Sam, are the main characters of Moonrise Kingdom and they seem to share a lot of time in script.
+
+Another thing we can do with this function is to filter by specific words. Previously we saw that the word tree is very present in the three movies, let's see what other words appear frequently in the context of tree. 
+
+```{r R.options=list(max.print=20)}
+wes_word_pairs %>%
+  filter(item1 == "tree")
+
+```
+
+```{r}
+ wes_section_words %>%
+  pairwise_count(word, section, sort = TRUE) %>% 
+  filter(item1 == "tree") %>% 
+  filter(n >= 6) %>%
+  mutate(item2 = reorder(item2, n)) %>%
+  ggplot(aes(n, item2,  fill = item2)) +
+  geom_col() +
+  labs(y = NULL) +
+  #Castello Cavalcanti is a short film released in 2013. It is one of the films that has a range of colors most similar to the word we are filtering, tree.
+  scale_fill_manual(values = wes_palette(16 ,name = "Cavalcanti1", type = "continuous"), name = "") +
+  guides(fill = guide_legend(reverse = TRUE))
+
+```
+
+### Pairwise correlation
+
+We saw in class that correlation between terms indicates how frequently they appear close [compared to] how frequently they appear independently.
+
+The Phi coefficient, which is similar to the Pearson Correlation, will be used to measure this correlation. When looking at a corpus, the Phi coefficient measures how likely it is that two words will appear together after accounting for the chance of each word appearing alone.
+
+```{r R.options=list(max.print=20)}
+wes_word_cors <- wes_section_words %>%
+  group_by(word) %>%
+  filter(n() >= 20) %>%
+  pairwise_cor(word, section, sort = TRUE)
+
+wes_word_cors
+
+```
+Most of the correlations appear to be between characters. Commander Pierce has 1 as a correlation because is the full name of a character, not two separete words. The perfect correlation indicates that the single words, pierce or commander, are never going to be used in any other way or combined with any other word than those that make up the name of this character.
+
+We can use this function and also filter by particular words. For instances, it would be nice to know to which words the main protagonist of Rushmore, Max, is the most correlated to.
+
+```{r R.options=list(max.print=20)}
+wes_word_cors %>%
+  filter(item1 == "max")
+```
+In Rushmore, the relationship between Max, Blume, and Miss Cross is complicated, as Max builds a friendship with Blume while also falling in love with Miss Cross, resulting in a love triangle that strains their friendships and finally leads to personal growth for all three characters. 
+
+### Using n-grams for context
+
+We saw in class that when working with negative clauses in sentiment analysis entailed a certain difficulty. Words have a significance until you put the word not infront of them. Thus, we need the context to understand if words are by themselves or preceded by negation words.
+
+```{r R.options=list(max.print=20)}
+bigrams_separated %>%
+  filter(word1 == "not") %>% 
+  count(word1, word2, sort = TRUE)
+
+```
+We could also do a similar analysis to see the context of positive, though sometimes bittersweet, words like love:
+
+```{r R.options=list(max.print=20)}
+bigrams_separated %>%
+  filter(word1 == "love") %>% 
+  count(word1, word2, sort = TRUE)
+
+```
+Create a dataframe with AFINN which allow us to see the negated words in Anderson's scripts associated to a sentiment by themselves.
+
+```{r R.options=list(max.print=20)}
 AFINN <- get_sentiments("afinn")
 
 negation_words <- c("not", "no", "never", "without")
@@ -926,15 +1095,14 @@ negated_words <- bigrams_separated %>%
 
 negated_words
 
-
 ```
 
-```{r}
+```{r R.options=list(max.print=20)}
 negated_words %>%
   mutate(contribution = n * value,
          sign = if_else(value > 0, "postive", "negative")) %>%
   group_by(word1) %>% 
-  top_n(15, abs(contribution)) %>%
+  top_n(20, abs(contribution)) %>%
   ungroup() %>%
   ggplot(aes(y = reorder_within(word2, contribution, word1), 
              x = contribution, 
@@ -944,8 +1112,34 @@ negated_words %>%
   facet_wrap(~ word1, scales = "free") + 
   labs(y = 'Words preceeded by a negation',
        x = "Contribution (Sent value * number of mentions)",
-       title = "Most common pos or neg words to follow negations")
+       title = "Most common pos or neg words to follow negations") +
+  scale_fill_manual(values = c("#9e1906", "#89b151"))
 
 ```
+It is interesting to see an absence of positive words neagted in Anderson's scripts. 
 
-dsadc
+## Document-term matrix
+
+The last section of this paper explores the use of the function `cast_dtm()` which turns a "tidy" one-term-per-document-per-row data frame into a DocumentTermMatrix
+
+```{r}
+wes_dtm <- script %>%
+  unnest_tokens(word, text) %>%
+  count(movie, word) %>%
+  #Convert to the matrix
+  cast_dtm(movie, word, n)
+
+wes_dtm
+
+```
+Note that Anderson has a sparsity of 49%, which means that only half the matrix are zeros.The collection of scripts has low sparsity which indicates that Anderson uses similar vocabulary across the movies, despite creating such unique and distinctive stories. Each story has their own identity but we see a number of recurring terms in Anderson's writing.
+
+## Conclusion
+
+To sum up, the text analysis of Wes Anderson's scripts has allowed us to understand that behind a colorful and lively facade, complex and thoughtful stories are hidden. 
+
+Despite the differences in their settings and plots, all three scripts have one thing in common: they all explore the complexities and sadness of life, even when there are times of joy and fun. They all have Anderson's distinct visual aesthetic, as well as a concentration on character-driven storylines that explore themes of family, identity, and the search for meaning in life. 
+
+Anderson's stories are melancholy and nostalgic, despite their whimsical and often comic tone. He uses much more negative terms than positive ones. Despite their disparities in place and content, the three scripts share an unifying lexicon and writing style that is distinctly Anderson. Ultimately, the scripts for Rushmore, Moonrise Kingdom, and Fantastic Mr. Fox are excellent examples of Anderson's distinct style as a screenwriter, demonstrating his ability to convey deeply personal yet broadly relatable stories.
+
+
