@@ -1081,7 +1081,7 @@ bigrams_separated %>%
   count(word1, word2, sort = TRUE)
 
 ```
-Create a dataframe with AFINN which allow us to see the negated words in Anderson's scripts associated to a sentiment by themselves.
+Creating a dataframe with AFINN allow us to see the negated words in Anderson's scripts associated to a sentiment by themselves.
 
 ```{r R.options=list(max.print=20)}
 AFINN <- get_sentiments("afinn")
