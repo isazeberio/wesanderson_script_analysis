@@ -231,7 +231,8 @@ wes_script %>%
   labs(y = NULL) +
   scale_fill_manual(values = wes_palette(21, name = "Rushmore", type = "continuous"), name = "") +
   #reverse the order of the legend 
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_linedraw()
 
 ```
 
@@ -254,7 +255,8 @@ wes_script %>%
   geom_col() +
   labs(y = NULL) +
   scale_fill_manual(values = wes_palette(21, name = "Moonrise3", type = "continuous"), name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_linedraw()
 
 ```
 
@@ -293,7 +295,8 @@ wes_script %>%
   geom_col() +
   labs(y = NULL) +
   scale_fill_manual(values = wes_palette(21, name = "FantasticFox1", type = "continuous"), name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_linedraw()
 
 ```
 
@@ -337,7 +340,8 @@ ggplot(frequency, aes(x = proportion, y = `Rushmore`,
                          high = wes_palette("Rushmore", n = 20, type = "continuous")[20])  +
     facet_wrap(~movie, ncol = 2) +
     theme(legend.position="none") +
-    labs(y = "Rushmore", x = NULL)
+    labs(y = "Rushmore", x = NULL) +
+    theme_bw()
 ```
 
 The plot helps to understand which words have in common the different scripts. The words that are close to the line, have similar frequencies in both sets of texts. The further they are to the right and to the upper zone of the plot, the more frequent they appear in both scripts. For example, Fantastic Mr. Fox and Rushmore have in the high frequency area words like door, head and black. We can glean a little more information from the comparison with Moonrise Kingdom by finding words like cigarette, bloody, and died, more explicit words. The words that are in the low left part of the plot are in the low frequency area. Lastly, words that are far from the line are words that are found more in one set of texts than another. For instance, it is interesting to observe that the word kid and its plural is used much more in Rushmore than in Moonrise Kingdom since the main characters of the latter are younger than the protagonist of Rushmore. It is noteworthy because Rushmore is a coming of age movie in which Max Fischer, the protagonist is an eccentric 15-year-old who is constantly interacting with older people: he falls in love with a first-grade teacher, Miss Cross, and befriends a wealthy industrialist, Herman Blume.
@@ -393,7 +397,8 @@ rushmore_joy %>%
   geom_col() +
   labs(y = NULL) +
   scale_fill_manual(values = wes_palette(12, name = "Rushmore", type = "continuous"), name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_linedraw()
 ```
 
 ```{r R.options=list(max.print=20)}
@@ -413,7 +418,8 @@ moonrise_joy %>%
   geom_col() +
   labs(y = NULL) +
   scale_fill_manual(values = wes_palette(10, name = "Moonrise3", type = "continuous"), name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_linedraw()
 ```
 
 ```{r R.options=list(max.print=20)}
@@ -433,7 +439,8 @@ fox_joy %>%
   geom_col() +
   labs(y = NULL) +
   scale_fill_manual(values = wes_palette(12, name = "FantasticFox1", type = "continuous"), name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_linedraw()
 ```
 
 The plots show us that one of the most frequents and recurrent word of joy is tree. Trees appear frequently in Wes Anderson's movies, serving as a powerful metaphor of nature and growth:
@@ -470,7 +477,8 @@ ggplot(wes_sentiment, aes(index, sentiment, fill = movie)) +
   geom_col(show.legend = TRUE) +
   facet_wrap(~movie, ncol = 2, scales = "free_x") +
   scale_fill_manual(values = wes_palette(3, name = "Rushmore", type = "continuous"), name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_bw()
 
 ```
 
@@ -530,7 +538,8 @@ bind_rows(afinn,
   #make the plot with x=index (chunks), y=sentiment and fill by lexicon (method)
   ggplot(aes(index, sentiment, fill = method)) +
   geom_col(show.legend = FALSE) +
-  facet_wrap(~method, ncol = 1, scales = "free_y")
+  facet_wrap(~method, ncol = 1, scales = "free_y") +
+  theme_bw()
 ```
 
 Now we can observe how different narrative plots can be just depending on the sentiment lexicon we use.
@@ -608,7 +617,7 @@ wes_script %>%
   acast(word ~ sentiment, value.var = "n", fill = 0) %>%
   #Paint two wordclouds in one using two different colors
   comparison.cloud(colors = c("#9e1906", "#89b151"),
-                   max.words = 100)
+                   max.words = 100) 
 
 ```
 
@@ -635,7 +644,8 @@ bing_word_counts %>%
        y = NULL) +
   scale_fill_manual(values = wes_palette(3, name = "Rushmore", type = "continuous"), 
                     name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_bw()
 ```
 
 This plot allows us to see the side by side comparison between the positive and negative words throughout the three scripts without the stop words and the additional ones that refer to character names. It is really nice to see that cuss is in the negative column and the second negative word most used after slowly.
@@ -685,7 +695,8 @@ ggplot(wes_words, aes(term_frequency, fill = movie)) +
   #The Life Aquatic with Steve Zissou is another Anderson's film
   scale_fill_manual(values = wes_palette(3, name = "Zissou1", 
                                          type = "continuous"), name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_linedraw()
 
 ```
 
@@ -699,7 +710,8 @@ ggplot(wes_words, aes(term_frequency, fill = movie)) +
   facet_wrap(~movie, ncol = 2, scales = "free_y") +
   scale_fill_manual(values = wes_palette(3, name = "Zissou1", 
                                          type = "continuous"), name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_bw()
 
 
 ```
@@ -725,7 +737,8 @@ freq_by_rank
 freq_by_rank %>% 
   ggplot(aes(rank, term_frequency, color = movie)) + 
   geom_line(linewidth = 1.1, alpha = 0.8, show.legend = TRUE)  +
-  scale_color_manual(values = wes_palette(3, name = "Moonrise3"), name = "") 
+  scale_color_manual(values = wes_palette(3, name = "Moonrise3"), name = "") +
+  theme_linedraw()
 
 ```
 
@@ -736,7 +749,8 @@ freq_by_rank %>%
   #better to visualize it on logarithmic scales
   scale_x_log10() +
   scale_y_log10() +
-  scale_color_manual(values = wes_palette(3, name = "Moonrise3"), name = "") 
+  scale_color_manual(values = wes_palette(3, name = "Moonrise3"), name = "") +
+  theme_linedraw()
 ```
 
 We can observe how an inversely proportional relationship will have a consistent, negative slope from right to left when plotted in this manner.
@@ -768,7 +782,8 @@ freq_by_rank %>%
   scale_x_log10() +
   scale_y_log10() +
   scale_color_manual(values = wes_palette(3, name = "Moonrise3"), name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_linedraw()
 ```
 
 ### TF-IDF
@@ -819,7 +834,8 @@ wes_tf_idf %>%
   facet_wrap(~movie, ncol = 2, scales = "free") +
   labs(x = "tf-idf", y = NULL) +
   scale_fill_manual(values = wes_palette(3, name = "Moonrise3"), name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_bw()
 
 ```
 
@@ -918,7 +934,8 @@ bigram_tf_idf %>%
   labs(x = "tf-idf", y = NULL) +
   #To see some of the other palettes the wesanderson library offers, I plot this graph with the French Dispatch color palette; it is Wes Anderson most recent movie
   scale_fill_manual(values = wes_palette(3, name = "FrenchDispatch"), name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_bw()
 
 ```
 
@@ -965,7 +982,7 @@ rushmore_bigram %>%
 
 ```
 
-From the Rushmore bigram plot we can see a big cloud of points coming out of Max. These are Max's actions throughout the script: Max holds, Max leaves, Max stares, Max waves, Max watches, Max nods smiles sadly (after all he is the protagonist of this story). They tell us a lot about the contemplative character of Max. There are some other really nice bigrams that remind us about the school scenario where the plot takes place like geometry test , yearbook photographer or lower school. And in another way, bigrams such as hand job also tell us about the interest, humor and rumors, that take place on the plot (e.g., "Did you say my mother gave you a hand job?"). T[here is even a short video compiling these moments.](https://www.youtube.com/watch?v=hJKTkcq_xh4)
+From the Rushmore bigram plot we can see a big cloud of points coming out of Max. These are Max's actions throughout the script: Max holds, Max leaves, Max stares, Max waves, Max watches, Max nods smiles sadly (after all he is the protagonist of this story). They tell us a lot about the contemplative character of Max. There are some other really nice bigrams that remind us about the school scenario where the plot takes place like geometry test , yearbook photographer or lower school. And in another way, bigrams such as hand job also tell us about the interest, humor and rumors, that take place on the plot (e.g., "Did you say my mother gave you a hand job?"). [There is even a short video compiling these moments.](https://www.youtube.com/watch?v=hJKTkcq_xh4)
 
 ```{r}
 moonrise_bigram <-  script %>% 
@@ -1034,7 +1051,8 @@ wes_word_pairs %>%
   labs(y = NULL) +
   #Castello Cavalcanti is a short film released in 2013. It is one of the films that has a range of colors most similar to the word we are filtering, tree.
   scale_fill_manual(values = wes_palette(16 ,name = "Cavalcanti1", type = "continuous"), name = "") +
-  guides(fill = guide_legend(reverse = TRUE))
+  guides(fill = guide_legend(reverse = TRUE)) +
+  theme_classic()
 
 ```
 
@@ -1113,7 +1131,8 @@ negated_words %>%
   labs(y = 'Words preceeded by a negation',
        x = "Contribution (Sent value * number of mentions)",
        title = "Most common pos or neg words to follow negations") +
-  scale_fill_manual(values = c("#9e1906", "#89b151"))
+  scale_fill_manual(values = c("#9e1906", "#89b151")) +
+  theme_classic()
 
 ```
 It is interesting to see an absence of positive words neagted in Anderson's scripts. 
